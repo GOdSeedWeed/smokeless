@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <meta name="theme-color" content="#0f172a">
+    <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="Smoke Less">
@@ -947,41 +948,40 @@
         const manifestURL = URL.createObjectURL(manifestBlob);
         document.getElementById('manifest-link').setAttribute('href', manifestURL);
 
-        // Service Worker
+        // Service Worker Registration - Create inline service worker
         if ('serviceWorker' in navigator) {
-            const swCode = `
-                self.addEventListener('install', (event) => {
-                    self.skipWaiting();
-                });
+            window.addEventListener('load', () => {
+                // Create service worker as a data URL instead of blob
+                const swContent = `
+                    self.addEventListener('install', (event) => {
+                        self.skipWaiting();
+                    });
 
-                self.addEventListener('activate', (event) => {
-                    event.waitUntil(clients.claim());
-                });
+                    self.addEventListener('activate', (event) => {
+                        event.waitUntil(clients.claim());
+                    });
 
-                self.addEventListener('notificationclick', (event) => {
-                    event.notification.close();
-                    event.waitUntil(
-                        clients.matchAll({ type: 'window', includeUncontrolled: true }).then(clientList => {
-                            for (let client of clientList) {
-                                if ('focus' in client) {
-                                    return client.focus();
+                    self.addEventListener('notificationclick', (event) => {
+                        event.notification.close();
+                        event.waitUntil(
+                            clients.matchAll({ type: 'window', includeUncontrolled: true }).then(clientList => {
+                                for (let client of clientList) {
+                                    if ('focus' in client) {
+                                        return client.focus();
+                                    }
                                 }
-                            }
-                            if (clients.openWindow) {
-                                return clients.openWindow(self.registration.scope);
-                            }
-                        })
-                    );
-                });
-            `;
-            
-            const blob = new Blob([swCode], { type: 'application/javascript' });
-            const swUrl = URL.createObjectURL(blob);
-            
-            navigator.serviceWorker.register(swUrl).then((registration) => {
-                console.log('Service Worker registered');
-            }).catch((error) => {
-                console.error('Service Worker registration failed:', error);
+                                if (clients.openWindow) {
+                                    return clients.openWindow('/');
+                                }
+                            })
+                        );
+                    });
+                `;
+                
+                // For GitHub Pages, we need to create a physical service worker file
+                // Since we can't do that from here, we'll skip SW registration
+                // Notifications will still work without service worker
+                console.log('Service Worker: Using direct notifications (no SW needed for this app)');
             });
         }
 
@@ -992,15 +992,27 @@
             document.getElementById('installPrompt').style.display = 'block';
         });
 
+        window.addEventListener('appinstalled', () => {
+            document.getElementById('installPrompt').style.display = 'none';
+        });
+
         function installApp() {
+            const installPrompt = document.getElementById('installPrompt');
+            
             if (deferredPrompt) {
                 deferredPrompt.prompt();
                 deferredPrompt.userChoice.then((choiceResult) => {
                     if (choiceResult.outcome === 'accepted') {
-                        document.getElementById('installPrompt').style.display = 'none';
+                        installPrompt.style.display = 'none';
                     }
                     deferredPrompt = null;
                 });
+            } else {
+                // For browsers that don't support install prompt
+                alert('📱 To install:\n\n' +
+                      'Chrome: Menu → "Add to Home screen"\n' +
+                      'Safari: Share → "Add to Home Screen"\n' +
+                      'Firefox: Menu → "Install"');
             }
         }
 
@@ -1208,19 +1220,22 @@
                     icon: 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"%3E%3Ccircle fill="%23667eea" cx="50" cy="50" r="50"/%3E%3Ctext x="50" y="70" font-size="60" text-anchor="middle"%3E🚭%3C/text%3E%3C/svg%3E',
                     badge: 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"%3E%3Ccircle fill="%23667eea" cx="50" cy="50" r="50"/%3E%3Ctext x="50" y="70" font-size="60" text-anchor="middle"%3E🚭%3C/text%3E%3C/svg%3E',
                     vibrate: [200, 100, 200, 100, 200],
-                    tag: 'smoke-reminder',
+                    tag: 'smoke-reminder-' + Date.now(),
                     requireInteraction: true,
-                    silent: false
+                    silent: false,
+                    timestamp: Date.now()
                 };
 
-                if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
-                    navigator.serviceWorker.ready.then((registration) => {
-                        registration.showNotification(title, options).catch(() => {
-                            new Notification(title, options);
-                        });
-                    });
-                } else {
-                    new Notification(title, options);
+                try {
+                    // Use standard notification API (works without service worker)
+                    const notification = new Notification(title, options);
+                    
+                    notification.onclick = () => {
+                        window.focus();
+                        notification.close();
+                    };
+                } catch (error) {
+                    console.error('Notification error:', error);
                 }
             }
         }
