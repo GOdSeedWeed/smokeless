@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
@@ -10,7 +11,8 @@
     <meta name="apple-mobile-web-app-title" content="Smoke Less">
     <meta name="description" content="Track your cigarette reduction journey">
     <link rel="manifest" id="manifest-link">
-    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ccircle fill='%23667eea' cx='50' cy='50' r='50'/%3E%3Ctext x='50' y='70' font-size='60' text-anchor='middle'%3E🚭%3C/text%3E%3C/svg%3E">
+    <link rel="icon" type="image/svg+xml"
+        href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ccircle fill='%23667eea' cx='50' cy='50' r='50'/%3E%3Ctext x='50' y='70' font-size='60' text-anchor='middle'%3E🚭%3C/text%3E%3C/svg%3E">
     <title>Smoke Less Journey</title>
     <style>
         * {
@@ -29,7 +31,7 @@
             --success: #10b981;
             --danger: #ef4444;
             --warning: #f59e0b;
-            
+
             --bg-start: #0f172a;
             --bg-end: #1e1b4b;
             --card-bg: rgba(30, 41, 59, 0.95);
@@ -38,7 +40,7 @@
             --text-secondary: #94a3b8;
             --header-bg: rgba(15, 23, 42, 0.95);
             --footer-bg: rgba(15, 23, 42, 0.95);
-            
+
             --glow-primary: rgba(102, 126, 234, 0.5);
             --glow-accent: rgba(245, 87, 108, 0.5);
         }
@@ -92,7 +94,7 @@
             border-radius: 12px;
             background: var(--card-bg);
             border: 2px solid var(--card-border);
-            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
             cursor: pointer;
             z-index: 102;
             display: flex;
@@ -280,7 +282,7 @@
             font-size: 2.5em;
             font-weight: bold;
             display: block;
-            text-shadow: 0 2px 10px rgba(0,0,0,0.3);
+            text-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
         }
 
         .time-unit .label {
@@ -312,7 +314,7 @@
         .next-smoke .time {
             font-size: 3em;
             font-weight: bold;
-            text-shadow: 0 4px 15px rgba(0,0,0,0.3);
+            text-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
         }
 
         .stats {
@@ -408,7 +410,7 @@
             cursor: pointer;
             margin-top: 10px;
             transition: all 0.3s ease;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
         }
 
         .btn:active {
@@ -668,13 +670,14 @@
                 min-width: 70px;
                 padding: 15px;
             }
-            
+
             .time-unit .number {
                 font-size: 2em;
             }
         }
     </style>
 </head>
+
 <body>
     <div class="header">
         <h1>🚭 Smoke Less Journey</h1>
@@ -809,17 +812,17 @@
     <div id="settingsModal" class="modal">
         <div class="modal-content">
             <h2>⚙️ Settings</h2>
-            
+
             <div class="setting-group">
                 <label>💰 Pack Price (DH)</label>
                 <input type="number" id="packPriceInput" value="39" min="1" step="0.5">
             </div>
-            
+
             <div class="setting-group">
                 <label>🚬 Cigarettes per Pack</label>
                 <input type="number" id="cigarettesPerPackInput" value="20" min="1">
             </div>
-            
+
             <div class="modal-buttons">
                 <button class="btn-cancel" onclick="closeModal('settingsModal')">Cancel</button>
                 <button class="btn-save" onclick="saveSettings()">Save Changes</button>
@@ -830,10 +833,10 @@
     <div id="scheduleModal" class="modal">
         <div class="modal-content">
             <h2>📅 Edit Schedules</h2>
-            
+
             <div class="phase-selector" id="phaseSelector"></div>
             <div id="scheduleEditor"></div>
-            
+
             <div class="modal-buttons">
                 <button class="btn-cancel" onclick="closeModal('scheduleModal')">Cancel</button>
                 <button class="btn-save" onclick="saveSchedules()">Save Schedules</button>
@@ -846,6 +849,84 @@
         let currentEditingPhase = 0;
         let countdownInterval = null;
         let notificationCheckInterval = null;
+        let wakeLock = null;
+        let audioContext = null;
+
+        // Audio notification backup
+        function initAudio() {
+            if (!audioContext) {
+                audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            }
+        }
+
+        function playNotificationSound() {
+            if (!audioContext) return;
+
+            const oscillator = audioContext.createOscillator();
+            const gainNode = audioContext.createGain();
+
+            oscillator.connect(gainNode);
+            gainNode.connect(audioContext.destination);
+
+            oscillator.frequency.value = 800;
+            oscillator.type = 'sine';
+
+            gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+            gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.5);
+
+            oscillator.start(audioContext.currentTime);
+            oscillator.stop(audioContext.currentTime + 0.5);
+
+            // Play 3 beeps
+            setTimeout(() => {
+                const osc2 = audioContext.createOscillator();
+                const gain2 = audioContext.createGain();
+                osc2.connect(gain2);
+                gain2.connect(audioContext.destination);
+                osc2.frequency.value = 1000;
+                osc2.type = 'sine';
+                gain2.gain.setValueAtTime(0.3, audioContext.currentTime);
+                gain2.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.5);
+                osc2.start(audioContext.currentTime);
+                osc2.stop(audioContext.currentTime + 0.5);
+            }, 200);
+
+            setTimeout(() => {
+                const osc3 = audioContext.createOscillator();
+                const gain3 = audioContext.createGain();
+                osc3.connect(gain3);
+                gain3.connect(audioContext.destination);
+                osc3.frequency.value = 1200;
+                osc3.type = 'sine';
+                gain3.gain.setValueAtTime(0.3, audioContext.currentTime);
+                gain3.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.5);
+                osc3.start(audioContext.currentTime);
+                osc3.stop(audioContext.currentTime + 0.5);
+            }, 400);
+        }
+
+        // Request wake lock to prevent sleep
+        async function requestWakeLock() {
+            if ('wakeLock' in navigator) {
+                try {
+                    wakeLock = await navigator.wakeLock.request('screen');
+                    console.log('Wake Lock acquired');
+
+                    wakeLock.addEventListener('release', () => {
+                        console.log('Wake Lock released');
+                    });
+                } catch (err) {
+                    console.error('Wake Lock error:', err);
+                }
+            }
+        }
+
+        // Re-acquire wake lock when page becomes visible
+        document.addEventListener('visibilitychange', async () => {
+            if (document.visibilityState === 'visible' && wakeLock !== null) {
+                await requestWakeLock();
+            }
+        });
 
         const defaultPhases = [
             { name: "Phase 1", perDay: 10, days: 2, times: ["08:30", "10:06", "11:42", "13:18", "14:54", "16:30", "18:06", "19:42", "21:18", "22:54"] },
@@ -977,7 +1058,7 @@
                         );
                     });
                 `;
-                
+
                 // For GitHub Pages, we need to create a physical service worker file
                 // Since we can't do that from here, we'll skip SW registration
                 // Notifications will still work without service worker
@@ -998,7 +1079,7 @@
 
         function installApp() {
             const installPrompt = document.getElementById('installPrompt');
-            
+
             if (deferredPrompt) {
                 deferredPrompt.prompt();
                 deferredPrompt.userChoice.then((choiceResult) => {
@@ -1010,9 +1091,9 @@
             } else {
                 // For browsers that don't support install prompt
                 alert('📱 To install:\n\n' +
-                      'Chrome: Menu → "Add to Home screen"\n' +
-                      'Safari: Share → "Add to Home Screen"\n' +
-                      'Firefox: Menu → "Install"');
+                    'Chrome: Menu → "Add to Home screen"\n' +
+                    'Safari: Share → "Add to Home Screen"\n' +
+                    'Firefox: Menu → "Install"');
             }
         }
 
@@ -1020,7 +1101,7 @@
             const menu = document.getElementById('sideMenu');
             const overlay = document.getElementById('menuOverlay');
             const hamburger = document.getElementById('hamburgerBtn');
-            
+
             menu.classList.toggle('active');
             overlay.classList.toggle('active');
             hamburger.classList.toggle('active');
@@ -1039,23 +1120,34 @@
                 saveState();
             }
 
+            // Initialize audio for notification sounds
+            initAudio();
+
+            // Request wake lock to keep app active
+            requestWakeLock();
+
             calculateCurrentDay();
             updateUI();
             checkNotificationPermission();
-            
+
             // Clear any existing intervals
             if (countdownInterval) clearInterval(countdownInterval);
             if (notificationCheckInterval) clearInterval(notificationCheckInterval);
-            
-            // Start countdown update
+
+            // Start countdown update every second
             countdownInterval = setInterval(updateCountdown, 1000);
-            
-            // Check for notifications every 30 seconds
-            notificationCheckInterval = setInterval(checkAndSendNotifications, 30000);
+
+            // Check for notifications every 10 seconds (more aggressive)
+            notificationCheckInterval = setInterval(checkAndSendNotifications, 10000);
             checkAndSendNotifications(); // Check immediately
-            
+
             // Update motivational quote every 30 seconds
             setInterval(updateMotivationalQuote, 30000);
+
+            // Keep app alive - ping every 5 seconds
+            setInterval(() => {
+                console.log('App active:', new Date().toLocaleTimeString());
+            }, 5000);
         }
 
         function calculateCurrentDay() {
@@ -1081,7 +1173,7 @@
 
         function updateUI() {
             const phase = getCurrentPhase();
-            
+
             document.getElementById('dayNumber').textContent = state.currentDay;
             const progressCircle = document.getElementById('progressCircle');
             const circumference = 2 * Math.PI * 90;
@@ -1094,8 +1186,8 @@
 
             document.getElementById('todayCount').textContent = `${state.todaySmoked}/${phase.perDay}`;
             document.getElementById('totalCost').textContent = `${state.totalCost} DH`;
-            
-            const savedMoney = (state.currentDay * 10 * (state.packPrice/state.cigarettesPerPack)) - (state.totalSmoked * (state.packPrice/state.cigarettesPerPack));
+
+            const savedMoney = (state.currentDay * 10 * (state.packPrice / state.cigarettesPerPack)) - (state.totalSmoked * (state.packPrice / state.cigarettesPerPack));
             document.getElementById('savedMoney').textContent = `${Math.round(savedMoney)} DH`;
             document.getElementById('totalSmoked').textContent = state.totalSmoked;
 
@@ -1106,25 +1198,25 @@
         function updateSchedule(phase) {
             const list = document.getElementById('scheduleList');
             list.innerHTML = '';
-            
+
             const now = new Date();
             let nextFound = false;
 
             phase.times.forEach((time, index) => {
                 const item = document.createElement('div');
                 item.className = 'schedule-item';
-                
+
                 const [hours, minutes] = time.split(':');
                 const scheduleTime = new Date();
                 scheduleTime.setHours(parseInt(hours), parseInt(minutes), 0, 0);
-                
+
                 if (index < state.todaySmoked) {
                     item.classList.add('completed');
                 } else if (!nextFound && scheduleTime >= now) {
                     item.classList.add('current');
                     nextFound = true;
                 }
-                
+
                 item.innerHTML = `
                     <span class="schedule-time">${time}</span>
                     <span>${index < state.todaySmoked ? '✓' : '⚪'}</span>
@@ -1135,17 +1227,17 @@
 
         function getNextSmokeTime(phase) {
             const now = new Date();
-            
+
             for (let time of phase.times) {
                 const [hours, minutes] = time.split(':');
                 const scheduleTime = new Date();
                 scheduleTime.setHours(parseInt(hours), parseInt(minutes), 0, 0);
-                
+
                 if (scheduleTime > now) {
                     return scheduleTime;
                 }
             }
-            
+
             const [hours, minutes] = phase.times[0].split(':');
             const tomorrow = new Date();
             tomorrow.setDate(tomorrow.getDate() + 1);
@@ -1188,61 +1280,116 @@
             const diffMinutes = Math.floor(diff / (1000 * 60));
             const diffSeconds = Math.floor(diff / 1000);
 
-            // 5 minute warning (send only once)
-            if (diffMinutes === 4 && diffSeconds >= 240 && diffSeconds <= 270) {
-                const timeKey = nextTime.toISOString().slice(0, 16);
+            // 5 minute warning - check range from 4:30 to 5:30 minutes
+            if (diffMinutes === 4 || diffMinutes === 5) {
+                const timeKey = nextTime.toISOString().slice(0, 16) + '-5min';
                 if (state.lastFiveMinWarning !== timeKey) {
                     const messages = notificationMessages.fiveMinWarning;
                     const randomMessage = messages[Math.floor(Math.random() * messages.length)];
-                    sendNotification(randomMessage, "Get ready to stay on track!");
+                    sendAggressiveNotification(randomMessage, "Get ready to stay on track!", true);
                     state.lastFiveMinWarning = timeKey;
                     saveState();
                 }
             }
-            
-            // Exact time notification (send only once)
-            if (diffSeconds >= 0 && diffSeconds <= 30) {
+
+            // Exact time notification - check 60 second window
+            if (diffSeconds >= -30 && diffSeconds <= 60) {
                 const timeKey = nextTime.toISOString().slice(0, 16);
                 if (state.lastNotificationTime !== timeKey) {
                     const messages = notificationMessages.timeToSmoke;
                     const randomMessage = messages[Math.floor(Math.random() * messages.length)];
-                    sendNotification(randomMessage, "Following the plan = winning the game!");
+                    sendAggressiveNotification(randomMessage, "Following the plan = winning the game!", false);
                     state.lastNotificationTime = timeKey;
                     saveState();
                 }
             }
         }
 
-        function sendNotification(title, body) {
+        function sendAggressiveNotification(title, body, is5Min) {
+            console.log('🔔 Sending notification:', title);
+
+            // Play sound immediately
+            playNotificationSound();
+
+            // Vibrate if supported
+            if ('vibrate' in navigator) {
+                navigator.vibrate([300, 100, 300, 100, 300, 100, 300]);
+            }
+
+            // Send multiple notifications for redundancy
             if ('Notification' in window && Notification.permission === 'granted') {
                 const options = {
                     body: body,
                     icon: 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"%3E%3Ccircle fill="%23667eea" cx="50" cy="50" r="50"/%3E%3Ctext x="50" y="70" font-size="60" text-anchor="middle"%3E🚭%3C/text%3E%3C/svg%3E',
                     badge: 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"%3E%3Ccircle fill="%23667eea" cx="50" cy="50" r="50"/%3E%3Ctext x="50" y="70" font-size="60" text-anchor="middle"%3E🚭%3C/text%3E%3C/svg%3E',
-                    vibrate: [200, 100, 200, 100, 200],
-                    tag: 'smoke-reminder-' + Date.now(),
-                    requireInteraction: true,
+                    vibrate: [300, 100, 300, 100, 300, 100, 300],
+                    tag: is5Min ? 'smoke-5min' : 'smoke-now',
+                    requireInteraction: !is5Min, // Require interaction for exact time
                     silent: false,
-                    timestamp: Date.now()
+                    timestamp: Date.now(),
+                    renotify: true
                 };
 
                 try {
-                    // Use standard notification API (works without service worker)
+                    // Send notification
                     const notification = new Notification(title, options);
-                    
+
                     notification.onclick = () => {
                         window.focus();
                         notification.close();
                     };
+
+                    // Send a second notification after 2 seconds as backup
+                    if (!is5Min) {
+                        setTimeout(() => {
+                            const backup = new Notification('🚬 REMINDER: ' + title, {
+                                ...options,
+                                tag: 'smoke-now-backup'
+                            });
+                            backup.onclick = () => {
+                                window.focus();
+                                backup.close();
+                            };
+                        }, 2000);
+                    }
+
+                    // Play sound again after 3 seconds
+                    setTimeout(() => playNotificationSound(), 3000);
+
                 } catch (error) {
                     console.error('Notification error:', error);
+                    // Fallback to alert if notification fails
+                    if (!is5Min) {
+                        alert('🚬 ' + title + '\n\n' + body);
+                    }
+                }
+            } else {
+                // No notification permission - use alert as fallback
+                if (!is5Min) {
+                    alert('🚬 ' + title + '\n\n' + body);
                 }
             }
+
+            // Flash the page title
+            flashPageTitle(title);
+        }
+
+        function flashPageTitle(message) {
+            const originalTitle = document.title;
+            let count = 0;
+            const interval = setInterval(() => {
+                document.title = count % 2 === 0 ? '🚬 ' + message : originalTitle;
+                count++;
+                if (count > 10) {
+                    clearInterval(interval);
+                    document.title = originalTitle;
+                }
+            }, 500);
         }
 
         function markSmoked() {
             const phase = getCurrentPhase();
-            
+
             if (state.todaySmoked >= phase.perDay) {
                 const wittyMessages = [
                     "Whoa there, champ! 🛑 You've hit today's limit. Your lungs will thank you!",
@@ -1279,10 +1426,10 @@
                 '✓ Logged! You\'re crushing it! 🏆'
             ];
             const randomSuccess = successMessages[Math.floor(Math.random() * successMessages.length)];
-            
+
             btn.textContent = randomSuccess;
             btn.style.background = 'linear-gradient(135deg, #10b981 0%, #059669 100%)';
-            
+
             setTimeout(() => {
                 btn.textContent = originalText;
                 btn.style.background = '';
@@ -1320,9 +1467,35 @@
                 Notification.requestPermission().then(permission => {
                     if (permission === 'granted') {
                         document.getElementById('notificationPrompt').style.display = 'none';
-                        sendNotification("🎉 Awesome! Notifications Enabled", "You'll get reminders for your smoking schedule");
+
+                        // Initialize audio context on user interaction
+                        initAudio();
+
+                        // Request wake lock
+                        requestWakeLock();
+
+                        sendAggressiveNotification("🎉 Awesome! Notifications Enabled", "You'll get reminders with sound and vibration", true);
+
+                        // Show Redmi-specific instructions
+                        setTimeout(() => {
+                            alert('📱 IMPORTANT for Redmi/MIUI users:\n\n' +
+                                '1. Go to Settings → Battery & Performance\n' +
+                                '2. Find this browser (Chrome/Brave)\n' +
+                                '3. Set to "No restrictions"\n' +
+                                '4. Enable "Autostart"\n' +
+                                '5. Lock this app in Recent Apps (🔒 icon)\n\n' +
+                                '6. Settings → Notifications\n' +
+                                '7. Find browser → Enable all permissions\n' +
+                                '8. Set priority to "Urgent"\n\n' +
+                                'This ensures notifications work reliably!');
+                        }, 2000);
+
                     } else if (permission === 'denied') {
-                        alert('⚠️ Notifications blocked. Please enable them in your browser settings.');
+                        alert('⚠️ Notifications blocked!\n\n' +
+                            'Please enable notifications:\n' +
+                            '1. Tap the lock/info icon in address bar\n' +
+                            '2. Enable Notifications\n' +
+                            '3. Reload the page');
                     }
                 });
             }
@@ -1349,10 +1522,10 @@
         function saveSettings() {
             const newPrice = parseFloat(document.getElementById('packPriceInput').value);
             const newCigsPerPack = parseInt(document.getElementById('cigarettesPerPackInput').value);
-            
+
             if (newPrice > 0) state.packPrice = newPrice;
             if (newCigsPerPack > 0) state.cigarettesPerPack = newCigsPerPack;
-            
+
             saveState();
             updateUI();
             closeModal('settingsModal');
@@ -1362,7 +1535,7 @@
         function renderPhaseSelector() {
             const selector = document.getElementById('phaseSelector');
             selector.innerHTML = '';
-            
+
             state.phases.forEach((phase, index) => {
                 const btn = document.createElement('button');
                 btn.textContent = phase.name;
@@ -1379,11 +1552,11 @@
         function renderScheduleEditor(phaseIndex) {
             const editor = document.getElementById('scheduleEditor');
             const phase = state.phases[phaseIndex];
-            
+
             editor.innerHTML = `
                 <h4 style="margin: 15px 0 10px 0; color: var(--primary);">${phase.name} Schedule (${phase.perDay}/day for ${phase.days} days)</h4>
             `;
-            
+
             phase.times.forEach((time, index) => {
                 const item = document.createElement('div');
                 item.className = 'schedule-editor-item';
@@ -1393,7 +1566,7 @@
                 `;
                 editor.appendChild(item);
             });
-            
+
             const addBtn = document.createElement('button');
             addBtn.className = 'add-time-btn';
             addBtn.textContent = '+ Add Time';
@@ -1429,7 +1602,7 @@
                     return (aH * 60 + aM) - (bH * 60 + bM);
                 });
             });
-            
+
             saveState();
             updateUI();
             closeModal('scheduleModal');
@@ -1439,15 +1612,15 @@
         function showStats() {
             toggleMenu();
             const phase = getCurrentPhase();
-            const savedMoney = (state.currentDay * 10 * (state.packPrice/state.cigarettesPerPack)) - (state.totalSmoked * (state.packPrice/state.cigarettesPerPack));
+            const savedMoney = (state.currentDay * 10 * (state.packPrice / state.cigarettesPerPack)) - (state.totalSmoked * (state.packPrice / state.cigarettesPerPack));
             alert(`📊 Your Statistics\n\n` +
-                  `Day: ${state.currentDay}/62\n` +
-                  `Phase: ${phase.name}\n` +
-                  `Today: ${state.todaySmoked}/${phase.perDay}\n` +
-                  `Total Smoked: ${state.totalSmoked}\n` +
-                  `Total Cost: ${state.totalCost} DH\n` +
-                  `Money Saved: ${Math.round(savedMoney)} DH\n` +
-                  `Packs Used: ${state.packsUsed}`);
+                `Day: ${state.currentDay}/62\n` +
+                `Phase: ${phase.name}\n` +
+                `Today: ${state.todaySmoked}/${phase.perDay}\n` +
+                `Total Smoked: ${state.totalSmoked}\n` +
+                `Total Cost: ${state.totalCost} DH\n` +
+                `Money Saved: ${Math.round(savedMoney)} DH\n` +
+                `Packs Used: ${state.packsUsed}`);
         }
 
         function resetProgress() {
@@ -1463,11 +1636,19 @@
         function showHelp() {
             toggleMenu();
             alert(`❓ Help & Info\n\n` +
-                  `🚬 Log each cigarette by tapping the green button\n\n` +
-                  `⏰ You'll get notifications 5 minutes before and at scheduled times\n\n` +
-                  `📅 Edit schedules to customize your reduction plan\n\n` +
-                  `💰 Track your spending and savings in real-time\n\n` +
-                  `📱 Install this app from your browser menu for the best experience`);
+                `🚬 Log each cigarette by tapping the green button\n\n` +
+                `⏰ You'll get notifications with SOUND + VIBRATION:\n` +
+                `   • 5 minutes before\n` +
+                `   • At exact time\n\n` +
+                `📱 For Redmi/MIUI phones:\n` +
+                `   1. Battery & Performance → No restrictions\n` +
+                `   2. Enable Autostart for browser\n` +
+                `   3. Lock app in Recent Apps\n` +
+                `   4. Notifications → Set to Urgent\n\n` +
+                `📅 Edit schedules to customize your plan\n\n` +
+                `💰 Track spending and savings in real-time\n\n` +
+                `🔋 Keep browser active with no battery restrictions\n\n` +
+                `📲 Add to Home Screen for best experience`);
         }
 
         // Initialize app
@@ -1478,4 +1659,5 @@
         }
     </script>
 </body>
+
 </html>
