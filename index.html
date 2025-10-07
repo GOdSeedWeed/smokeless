@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <meta name="theme-color" content="#667eea">
+    <meta name="theme-color" content="#0f172a">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="Smoke Less">
@@ -30,20 +30,6 @@
             --warning: #f59e0b;
             
             --bg-start: #0f172a;
-            --bg-end: #1e293b;
-            --card-bg: rgba(255, 255, 255, 0.95);
-            --card-border: rgba(255, 255, 255, 0.1);
-            --text-primary: #1f2937;
-            --text-secondary: #6b7280;
-            --header-bg: rgba(15, 23, 42, 0.8);
-            --footer-bg: rgba(15, 23, 42, 0.8);
-            
-            --glow-primary: rgba(102, 126, 234, 0.5);
-            --glow-accent: rgba(245, 87, 108, 0.5);
-        }
-
-        body.dark-mode {
-            --bg-start: #0f172a;
             --bg-end: #1e1b4b;
             --card-bg: rgba(30, 41, 59, 0.95);
             --card-border: rgba(255, 255, 255, 0.1);
@@ -51,6 +37,9 @@
             --text-secondary: #94a3b8;
             --header-bg: rgba(15, 23, 42, 0.95);
             --footer-bg: rgba(15, 23, 42, 0.95);
+            
+            --glow-primary: rgba(102, 126, 234, 0.5);
+            --glow-accent: rgba(245, 87, 108, 0.5);
         }
 
         body {
@@ -93,50 +82,111 @@
             font-size: 0.9em;
         }
 
-        .theme-toggle {
-            position: fixed;
-            top: 20px;
-            right: 70px;
-            width: 45px;
-            height: 45px;
-            border-radius: 50%;
-            background: var(--card-bg);
-            border: 2px solid var(--card-border);
-            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
-            font-size: 1.3em;
-            cursor: pointer;
-            z-index: 101;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            transition: all 0.3s ease;
-        }
-
-        .theme-toggle:active {
-            transform: scale(0.95);
-        }
-
-        .settings-btn {
+        .hamburger-btn {
             position: fixed;
             top: 20px;
             right: 20px;
             width: 45px;
             height: 45px;
-            border-radius: 50%;
+            border-radius: 12px;
             background: var(--card-bg);
             border: 2px solid var(--card-border);
             box-shadow: 0 4px 15px rgba(0,0,0,0.2);
-            font-size: 1.3em;
             cursor: pointer;
-            z-index: 101;
+            z-index: 102;
             display: flex;
+            flex-direction: column;
             align-items: center;
             justify-content: center;
+            gap: 5px;
             transition: all 0.3s ease;
         }
 
-        .settings-btn:active {
-            transform: scale(0.95);
+        .hamburger-btn span {
+            width: 20px;
+            height: 2px;
+            background: var(--text-primary);
+            border-radius: 2px;
+            transition: all 0.3s ease;
+        }
+
+        .hamburger-btn.active span:nth-child(1) {
+            transform: rotate(45deg) translate(5px, 5px);
+        }
+
+        .hamburger-btn.active span:nth-child(2) {
+            opacity: 0;
+        }
+
+        .hamburger-btn.active span:nth-child(3) {
+            transform: rotate(-45deg) translate(7px, -7px);
+        }
+
+        .side-menu {
+            position: fixed;
+            top: 0;
+            right: -100%;
+            width: 280px;
+            height: 100vh;
+            background: var(--card-bg);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-left: 1px solid var(--card-border);
+            box-shadow: -4px 0 30px rgba(0, 0, 0, 0.5);
+            z-index: 101;
+            transition: right 0.3s ease;
+            overflow-y: auto;
+            padding: 80px 20px 20px;
+        }
+
+        .side-menu.active {
+            right: 0;
+        }
+
+        .menu-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(5px);
+            z-index: 100;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s ease;
+        }
+
+        .menu-overlay.active {
+            opacity: 1;
+            pointer-events: all;
+        }
+
+        .menu-item {
+            padding: 15px;
+            margin: 10px 0;
+            background: rgba(102, 126, 234, 0.1);
+            border-radius: 12px;
+            border: 1px solid var(--card-border);
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            color: var(--text-primary);
+        }
+
+        .menu-item:active {
+            transform: scale(0.98);
+        }
+
+        .menu-item:hover {
+            background: rgba(102, 126, 234, 0.2);
+            box-shadow: 0 4px 15px var(--glow-primary);
+        }
+
+        .menu-item-icon {
+            font-size: 1.3em;
         }
 
         .container {
@@ -155,11 +205,6 @@
             box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
             border: 1px solid var(--card-border);
             transition: all 0.3s ease;
-        }
-
-        .card:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.3);
         }
 
         .progress-ring {
@@ -230,11 +275,6 @@
             transition: all 0.3s ease;
         }
 
-        .time-unit:hover {
-            transform: scale(1.05);
-            box-shadow: 0 12px 30px var(--glow-primary);
-        }
-
         .time-unit .number {
             font-size: 2.5em;
             font-weight: bold;
@@ -258,12 +298,6 @@
             text-align: center;
             margin: 20px 0;
             box-shadow: 0 8px 25px var(--glow-accent);
-            transition: all 0.3s ease;
-        }
-
-        .next-smoke:hover {
-            transform: scale(1.02);
-            box-shadow: 0 12px 35px var(--glow-accent);
         }
 
         .next-smoke h3 {
@@ -294,11 +328,6 @@
             text-align: center;
             border: 1px solid var(--card-border);
             transition: all 0.3s ease;
-        }
-
-        .stat-box:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 8px 20px rgba(102, 126, 234, 0.3);
         }
 
         .stat-box .value {
@@ -351,11 +380,6 @@
             transition: all 0.3s ease;
         }
 
-        .schedule-item:hover {
-            background: linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%);
-            transform: translateX(5px);
-        }
-
         .schedule-item.completed {
             opacity: 0.6;
             border-left-color: var(--success);
@@ -394,10 +418,6 @@
             background: linear-gradient(135deg, var(--success) 0%, #059669 100%);
             color: white;
             box-shadow: 0 8px 25px rgba(16, 185, 129, 0.4);
-        }
-
-        .btn-success:hover {
-            box-shadow: 0 12px 35px rgba(16, 185, 129, 0.5);
         }
 
         .btn-primary {
@@ -461,10 +481,6 @@
             cursor: pointer;
             margin-top: 10px;
             transition: all 0.3s ease;
-        }
-
-        .notification-banner button:active {
-            transform: scale(0.95);
         }
 
         .modal {
@@ -587,7 +603,6 @@
             border: none;
             border-radius: 10px;
             cursor: pointer;
-            transition: all 0.3s ease;
         }
 
         .add-time-btn {
@@ -600,7 +615,6 @@
             margin-top: 10px;
             width: 100%;
             font-weight: bold;
-            transition: all 0.3s ease;
         }
 
         .phase-selector {
@@ -618,7 +632,6 @@
             border-radius: 10px;
             cursor: pointer;
             font-weight: bold;
-            transition: all 0.3s ease;
         }
 
         .phase-selector button.active {
@@ -647,16 +660,6 @@
             font-weight: bold;
             cursor: pointer;
             margin-top: 12px;
-            transition: all 0.3s ease;
-        }
-
-        @keyframes glow {
-            0%, 100% { box-shadow: 0 0 20px var(--glow-primary); }
-            50% { box-shadow: 0 0 40px var(--glow-primary); }
-        }
-
-        .pulse-glow {
-            animation: glow 2s infinite;
         }
 
         @media (max-width: 600px) {
@@ -677,8 +680,36 @@
         <p>Your path to freedom starts here</p>
     </div>
 
-    <button class="theme-toggle" onclick="toggleTheme()" aria-label="Toggle theme">🌓</button>
-    <button class="settings-btn" onclick="openSettings()" aria-label="Settings">⚙️</button>
+    <button class="hamburger-btn" id="hamburgerBtn" onclick="toggleMenu()">
+        <span></span>
+        <span></span>
+        <span></span>
+    </button>
+
+    <div class="menu-overlay" id="menuOverlay" onclick="toggleMenu()"></div>
+
+    <div class="side-menu" id="sideMenu">
+        <div class="menu-item" onclick="openSettings()">
+            <span class="menu-item-icon">⚙️</span>
+            <span>Settings</span>
+        </div>
+        <div class="menu-item" onclick="openScheduleEditor()">
+            <span class="menu-item-icon">📅</span>
+            <span>Edit Schedules</span>
+        </div>
+        <div class="menu-item" onclick="showStats()">
+            <span class="menu-item-icon">📊</span>
+            <span>Statistics</span>
+        </div>
+        <div class="menu-item" onclick="resetProgress()">
+            <span class="menu-item-icon">🔄</span>
+            <span>Reset Progress</span>
+        </div>
+        <div class="menu-item" onclick="showHelp()">
+            <span class="menu-item-icon">❓</span>
+            <span>Help & Info</span>
+        </div>
+    </div>
 
     <div class="container">
         <div id="installPrompt" class="install-prompt">
@@ -711,7 +742,7 @@
                 </div>
             </div>
 
-            <div class="next-smoke pulse-glow">
+            <div class="next-smoke">
                 <h3>Next Cigarette</h3>
                 <div class="time" id="nextTime">08:30</div>
             </div>
@@ -787,26 +818,24 @@
                 <label>🚬 Cigarettes per Pack</label>
                 <input type="number" id="cigarettesPerPackInput" value="20" min="1">
             </div>
-
-            <div class="setting-group">
-                <label>📅 Edit Schedules</label>
-                <div class="phase-selector" id="phaseSelector"></div>
-                <div id="scheduleEditor"></div>
-            </div>
-            
-            <div class="setting-group">
-                <label>🔔 Notifications</label>
-                <button class="btn btn-primary" onclick="testNotification()">Test Notification</button>
-            </div>
-
-            <div class="setting-group">
-                <label>🔄 Reset Progress</label>
-                <button class="btn btn-primary" onclick="resetProgress()" style="background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);">Reset All Data</button>
-            </div>
             
             <div class="modal-buttons">
-                <button class="btn-cancel" onclick="closeSettings()">Cancel</button>
+                <button class="btn-cancel" onclick="closeModal('settingsModal')">Cancel</button>
                 <button class="btn-save" onclick="saveSettings()">Save Changes</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="scheduleModal" class="modal">
+        <div class="modal-content">
+            <h2>📅 Edit Schedules</h2>
+            
+            <div class="phase-selector" id="phaseSelector"></div>
+            <div id="scheduleEditor"></div>
+            
+            <div class="modal-buttons">
+                <button class="btn-cancel" onclick="closeModal('scheduleModal')">Cancel</button>
+                <button class="btn-save" onclick="saveSchedules()">Save Schedules</button>
             </div>
         </div>
     </div>
@@ -814,6 +843,8 @@
     <script>
         let deferredPrompt;
         let currentEditingPhase = 0;
+        let countdownInterval = null;
+        let notificationCheckInterval = null;
 
         const defaultPhases = [
             { name: "Phase 1", perDay: 10, days: 2, times: ["08:30", "10:06", "11:42", "13:18", "14:54", "16:30", "18:06", "19:42", "21:18", "22:54"] },
@@ -868,13 +899,6 @@
                 "💰 Cha-ching! You're literally saving money right now",
                 "🎮 Achievement Unlocked: Another day on track!",
                 "🔬 Science fact: You're 24hrs closer to better lungs!"
-            ],
-            encouragement: [
-                "🌈 Each scheduled smoke is one step closer to freedom",
-                "💎 You're building willpower like a muscle - stronger daily!",
-                "🚀 Future you is already celebrating this moment",
-                "🎨 You're painting a masterpiece of self-control",
-                "⭐ Legendary! You're doing what many dream of doing"
             ]
         };
 
@@ -890,8 +914,7 @@
             cigarettesPerPack: 20,
             phases: JSON.parse(JSON.stringify(defaultPhases)),
             lastNotificationTime: null,
-            lastMotivationalNotification: null,
-            darkMode: false
+            lastFiveMinWarning: null
         };
 
         // PWA Manifest
@@ -902,7 +925,7 @@
             start_url: window.location.href,
             display: "standalone",
             background_color: "#0f172a",
-            theme_color: "#667eea",
+            theme_color: "#0f172a",
             orientation: "portrait",
             icons: [
                 {
@@ -927,8 +950,6 @@
         // Service Worker
         if ('serviceWorker' in navigator) {
             const swCode = `
-                const CACHE_NAME = 'smoke-less-v1';
-                
                 self.addEventListener('install', (event) => {
                     self.skipWaiting();
                 });
@@ -952,46 +973,13 @@
                         })
                     );
                 });
-
-                self.addEventListener('push', (event) => {
-                    const data = event.data ? event.data.json() : {};
-                    const title = data.title || 'Smoke Less';
-                    const options = {
-                        body: data.body || 'Time for your scheduled cigarette',
-                        icon: 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"%3E%3Ccircle fill="%23667eea" cx="50" cy="50" r="50"/%3E%3Ctext x="50" y="70" font-size="60" text-anchor="middle"%3E🚭%3C/text%3E%3C/svg%3E',
-                        badge: 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"%3E%3Ccircle fill="%23667eea" cx="50" cy="50" r="50"/%3E%3Ctext x="50" y="70" font-size="60" text-anchor="middle"%3E🚭%3C/text%3E%3C/svg%3E',
-                        vibrate: [200, 100, 200, 100, 200],
-                        tag: 'smoke-reminder',
-                        requireInteraction: false,
-                        silent: false,
-                        data: data
-                    };
-                    
-                    event.waitUntil(
-                        self.registration.showNotification(title, options)
-                    );
-                });
-
-                self.addEventListener('notificationclose', (event) => {
-                    console.log('Notification closed:', event.notification.tag);
-                });
             `;
             
             const blob = new Blob([swCode], { type: 'application/javascript' });
             const swUrl = URL.createObjectURL(blob);
             
             navigator.serviceWorker.register(swUrl).then((registration) => {
-                console.log('Service Worker registered successfully');
-                
-                // Request persistent notification permission
-                if ('Notification' in window && Notification.permission === 'granted') {
-                    // Keep service worker alive
-                    setInterval(() => {
-                        if (registration.active) {
-                            registration.active.postMessage({ type: 'keepalive' });
-                        }
-                    }, 20000);
-                }
+                console.log('Service Worker registered');
             }).catch((error) => {
                 console.error('Service Worker registration failed:', error);
             });
@@ -1002,11 +990,6 @@
             e.preventDefault();
             deferredPrompt = e;
             document.getElementById('installPrompt').style.display = 'block';
-        });
-
-        window.addEventListener('appinstalled', () => {
-            document.getElementById('installPrompt').style.display = 'none';
-            deferredPrompt = null;
         });
 
         function installApp() {
@@ -1021,37 +1004,46 @@
             }
         }
 
-        function toggleTheme() {
-            state.darkMode = !state.darkMode;
-            document.body.classList.toggle('dark-mode', state.darkMode);
-            saveState();
+        function toggleMenu() {
+            const menu = document.getElementById('sideMenu');
+            const overlay = document.getElementById('menuOverlay');
+            const hamburger = document.getElementById('hamburgerBtn');
+            
+            menu.classList.toggle('active');
+            overlay.classList.toggle('active');
+            hamburger.classList.toggle('active');
         }
 
         function initializeApp() {
             const saved = localStorage.getItem('smokeLessState');
             if (saved) {
                 state = JSON.parse(saved);
-                if (!state.startDate) {
-                    state.startDate = new Date().toISOString();
-                }
+                if (!state.startDate) state.startDate = new Date().toISOString();
                 if (!state.packPrice) state.packPrice = 39;
                 if (!state.cigarettesPerPack) state.cigarettesPerPack = 20;
                 if (!state.phases) state.phases = JSON.parse(JSON.stringify(defaultPhases));
-                if (state.darkMode === undefined) state.darkMode = false;
             } else {
                 state.startDate = new Date().toISOString();
                 saveState();
             }
 
-            document.body.classList.toggle('dark-mode', state.darkMode);
             calculateCurrentDay();
             updateUI();
             checkNotificationPermission();
-            scheduleNextNotification();
             
-            setInterval(updateCountdown, 1000);
-            setInterval(() => updateMotivationalQuote(), 30000);
-            setInterval(scheduleNextNotification, 60000);
+            // Clear any existing intervals
+            if (countdownInterval) clearInterval(countdownInterval);
+            if (notificationCheckInterval) clearInterval(notificationCheckInterval);
+            
+            // Start countdown update
+            countdownInterval = setInterval(updateCountdown, 1000);
+            
+            // Check for notifications every 30 seconds
+            notificationCheckInterval = setInterval(checkAndSendNotifications, 30000);
+            checkAndSendNotifications(); // Check immediately
+            
+            // Update motivational quote every 30 seconds
+            setInterval(updateMotivationalQuote, 30000);
         }
 
         function calculateCurrentDay() {
@@ -1061,10 +1053,7 @@
             now.setHours(0, 0, 0, 0);
             const diffTime = now - start;
             const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
-            state.currentDay = diffDays + 1;
-            
-            if (state.currentDay > 62) state.currentDay = 62;
-            if (state.currentDay < 1) state.currentDay = 1;
+            state.currentDay = Math.max(1, Math.min(diffDays + 1, 62));
         }
 
         function getCurrentPhase() {
@@ -1115,9 +1104,9 @@
                 
                 const [hours, minutes] = time.split(':');
                 const scheduleTime = new Date();
-                scheduleTime.setHours(parseInt(hours), parseInt(minutes), 0);
+                scheduleTime.setHours(parseInt(hours), parseInt(minutes), 0, 0);
                 
-                if (scheduleTime < now && index < state.todaySmoked) {
+                if (index < state.todaySmoked) {
                     item.classList.add('completed');
                 } else if (!nextFound && scheduleTime >= now) {
                     item.classList.add('current');
@@ -1179,51 +1168,60 @@
             document.getElementById('seconds').textContent = seconds.toString().padStart(2, '0');
         }
 
-        function scheduleNextNotification() {
+        function checkAndSendNotifications() {
             const phase = getCurrentPhase();
             const nextTime = getNextSmokeTime(phase);
             const now = new Date();
             const diff = nextTime - now;
+            const diffMinutes = Math.floor(diff / (1000 * 60));
+            const diffSeconds = Math.floor(diff / 1000);
 
-            // 5 minutes before notification
-            const fiveMinsBefore = diff - (5 * 60 * 1000);
-            
-            if (fiveMinsBefore > 0 && fiveMinsBefore < 60000) {
-                const timeStr = nextTime.toISOString();
-                if (state.lastNotificationTime !== timeStr + '-5min') {
+            // 5 minute warning (send only once)
+            if (diffMinutes === 4 && diffSeconds >= 240 && diffSeconds <= 270) {
+                const timeKey = nextTime.toISOString().slice(0, 16);
+                if (state.lastFiveMinWarning !== timeKey) {
                     const messages = notificationMessages.fiveMinWarning;
                     const randomMessage = messages[Math.floor(Math.random() * messages.length)];
-                    sendNotification(randomMessage, "Get ready to stay on track!", 'warning');
-                    state.lastNotificationTime = timeStr + '-5min';
+                    sendNotification(randomMessage, "Get ready to stay on track!");
+                    state.lastFiveMinWarning = timeKey;
                     saveState();
                 }
             }
             
-            // Exact time notification
-            if (diff > 0 && diff < 60000) {
-                const timeStr = nextTime.toISOString();
-                if (state.lastNotificationTime !== timeStr) {
+            // Exact time notification (send only once)
+            if (diffSeconds >= 0 && diffSeconds <= 30) {
+                const timeKey = nextTime.toISOString().slice(0, 16);
+                if (state.lastNotificationTime !== timeKey) {
                     const messages = notificationMessages.timeToSmoke;
                     const randomMessage = messages[Math.floor(Math.random() * messages.length)];
-                    sendNotification(randomMessage, "Following the plan = winning the game!", 'primary');
-                    state.lastNotificationTime = timeStr;
+                    sendNotification(randomMessage, "Following the plan = winning the game!");
+                    state.lastNotificationTime = timeKey;
                     saveState();
                 }
             }
+        }
 
-            // Motivational notification every 2 hours if app is open
-            const lastMotivational = state.lastMotivationalNotification || 0;
-            const timeSinceMotivational = now - new Date(lastMotivational);
-            if (timeSinceMotivational > 2 * 60 * 60 * 1000) {
-                const allMotivational = [
-                    ...notificationMessages.motivational,
-                    ...notificationMessages.witty,
-                    ...notificationMessages.encouragement
-                ];
-                const randomMessage = allMotivational[Math.floor(Math.random() * allMotivational.length)];
-                sendNotification(randomMessage, "You're doing great! Keep it up!", 'motivational');
-                state.lastMotivationalNotification = now.toISOString();
-                saveState();
+        function sendNotification(title, body) {
+            if ('Notification' in window && Notification.permission === 'granted') {
+                const options = {
+                    body: body,
+                    icon: 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"%3E%3Ccircle fill="%23667eea" cx="50" cy="50" r="50"/%3E%3Ctext x="50" y="70" font-size="60" text-anchor="middle"%3E🚭%3C/text%3E%3C/svg%3E',
+                    badge: 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"%3E%3Ccircle fill="%23667eea" cx="50" cy="50" r="50"/%3E%3Ctext x="50" y="70" font-size="60" text-anchor="middle"%3E🚭%3C/text%3E%3C/svg%3E',
+                    vibrate: [200, 100, 200, 100, 200],
+                    tag: 'smoke-reminder',
+                    requireInteraction: true,
+                    silent: false
+                };
+
+                if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
+                    navigator.serviceWorker.ready.then((registration) => {
+                        registration.showNotification(title, options).catch(() => {
+                            new Notification(title, options);
+                        });
+                    });
+                } else {
+                    new Notification(title, options);
+                }
             }
         }
 
@@ -1270,12 +1268,6 @@
             btn.textContent = randomSuccess;
             btn.style.background = 'linear-gradient(135deg, #10b981 0%, #059669 100%)';
             
-            // Send encouraging notification
-            if (state.todaySmoked === Math.floor(phase.perDay / 2)) {
-                const messages = notificationMessages.motivational;
-                sendNotification(messages[Math.floor(Math.random() * messages.length)], "Halfway through today - you're unstoppable!", 'motivational');
-            }
-            
             setTimeout(() => {
                 btn.textContent = originalText;
                 btn.style.background = '';
@@ -1286,8 +1278,7 @@
             const allQuotes = [
                 ...motivationalQuotes,
                 ...notificationMessages.motivational,
-                ...notificationMessages.witty,
-                ...notificationMessages.encouragement
+                ...notificationMessages.witty
             ];
             const quote = allQuotes[Math.floor(Math.random() * allQuotes.length)];
             const quoteEl = document.getElementById('motivationalText');
@@ -1314,86 +1305,43 @@
                 Notification.requestPermission().then(permission => {
                     if (permission === 'granted') {
                         document.getElementById('notificationPrompt').style.display = 'none';
-                        const messages = notificationMessages.encouragement;
-                        const randomMessage = messages[Math.floor(Math.random() * messages.length)];
-                        sendNotification("🎉 Awesome! Notifications Enabled", randomMessage, 'motivational');
-                        
-                        // Request persistent notification permission for background
-                        if ('serviceWorker' in navigator && 'PushManager' in window) {
-                            navigator.serviceWorker.ready.then((registration) => {
-                                console.log('Push notifications ready');
-                            });
-                        }
+                        sendNotification("🎉 Awesome! Notifications Enabled", "You'll get reminders for your smoking schedule");
                     } else if (permission === 'denied') {
-                        alert('⚠️ Notifications blocked. Please enable them in your browser settings to get reminders.');
+                        alert('⚠️ Notifications blocked. Please enable them in your browser settings.');
                     }
                 });
-            } else {
-                alert('❌ Your browser does not support notifications.');
             }
-        }
-
-        function sendNotification(title, body, type = 'primary') {
-            if ('Notification' in window && Notification.permission === 'granted') {
-                const options = {
-                    body: body,
-                    icon: 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"%3E%3Ccircle fill="%23667eea" cx="50" cy="50" r="50"/%3E%3Ctext x="50" y="70" font-size="60" text-anchor="middle"%3E🚭%3C/text%3E%3C/svg%3E',
-                    badge: 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"%3E%3Ccircle fill="%23667eea" cx="50" cy="50" r="50"/%3E%3Ctext x="50" y="70" font-size="60" text-anchor="middle"%3E🚭%3C/text%3E%3C/svg%3E',
-                    vibrate: type === 'primary' ? [200, 100, 200, 100, 200] : [200, 100, 200],
-                    tag: 'smoke-reminder-' + type,
-                    requireInteraction: type === 'primary',
-                    silent: false,
-                    renotify: true,
-                    data: { type: type, timestamp: Date.now() }
-                };
-
-                if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
-                    navigator.serviceWorker.ready.then((registration) => {
-                        registration.showNotification(title, options).catch(err => {
-                            console.error('Notification error:', err);
-                            // Fallback to regular notification
-                            new Notification(title, options);
-                        });
-                    });
-                } else {
-                    new Notification(title, options);
-                }
-
-                // Also trigger push notification if supported
-                if ('serviceWorker' in navigator && 'PushManager' in window) {
-                    navigator.serviceWorker.ready.then((registration) => {
-                        // Simulate push for local notifications
-                        registration.active.postMessage({
-                            type: 'push',
-                            title: title,
-                            body: body,
-                            notificationType: type
-                        });
-                    });
-                }
-            }
-        }
-
-        function testNotification() {
-            const allMessages = [
-                ...notificationMessages.timeToSmoke,
-                ...notificationMessages.motivational,
-                ...notificationMessages.witty
-            ];
-            const randomMessage = allMessages[Math.floor(Math.random() * allMessages.length)];
-            sendNotification(randomMessage, "Your notifications are working perfectly! 🎉", 'primary');
         }
 
         function openSettings() {
+            toggleMenu();
             document.getElementById('packPriceInput').value = state.packPrice;
             document.getElementById('cigarettesPerPackInput').value = state.cigarettesPerPack;
-            renderPhaseSelector();
-            renderScheduleEditor(currentEditingPhase);
             document.getElementById('settingsModal').classList.add('active');
         }
 
-        function closeSettings() {
-            document.getElementById('settingsModal').classList.remove('active');
+        function openScheduleEditor() {
+            toggleMenu();
+            renderPhaseSelector();
+            renderScheduleEditor(currentEditingPhase);
+            document.getElementById('scheduleModal').classList.add('active');
+        }
+
+        function closeModal(modalId) {
+            document.getElementById(modalId).classList.remove('active');
+        }
+
+        function saveSettings() {
+            const newPrice = parseFloat(document.getElementById('packPriceInput').value);
+            const newCigsPerPack = parseInt(document.getElementById('cigarettesPerPackInput').value);
+            
+            if (newPrice > 0) state.packPrice = newPrice;
+            if (newCigsPerPack > 0) state.cigarettesPerPack = newCigsPerPack;
+            
+            saveState();
+            updateUI();
+            closeModal('settingsModal');
+            alert('✓ Settings saved successfully!');
         }
 
         function renderPhaseSelector() {
@@ -1458,17 +1406,7 @@
             renderScheduleEditor(phaseIndex);
         }
 
-        function saveSettings() {
-            const newPrice = parseFloat(document.getElementById('packPriceInput').value);
-            const newCigsPerPack = parseInt(document.getElementById('cigarettesPerPackInput').value);
-            
-            if (newPrice > 0) {
-                state.packPrice = newPrice;
-            }
-            if (newCigsPerPack > 0) {
-                state.cigarettesPerPack = newCigsPerPack;
-            }
-            
+        function saveSchedules() {
             state.phases.forEach(phase => {
                 phase.times.sort((a, b) => {
                     const [aH, aM] = a.split(':').map(Number);
@@ -1479,20 +1417,45 @@
             
             saveState();
             updateUI();
-            closeSettings();
-            
-            alert('✓ Settings saved successfully!');
+            closeModal('scheduleModal');
+            alert('✓ Schedules saved successfully!');
+        }
+
+        function showStats() {
+            toggleMenu();
+            const phase = getCurrentPhase();
+            const savedMoney = (state.currentDay * 10 * (state.packPrice/state.cigarettesPerPack)) - (state.totalSmoked * (state.packPrice/state.cigarettesPerPack));
+            alert(`📊 Your Statistics\n\n` +
+                  `Day: ${state.currentDay}/62\n` +
+                  `Phase: ${phase.name}\n` +
+                  `Today: ${state.todaySmoked}/${phase.perDay}\n` +
+                  `Total Smoked: ${state.totalSmoked}\n` +
+                  `Total Cost: ${state.totalCost} DH\n` +
+                  `Money Saved: ${Math.round(savedMoney)} DH\n` +
+                  `Packs Used: ${state.packsUsed}`);
         }
 
         function resetProgress() {
+            toggleMenu();
             if (confirm('⚠️ Are you sure? This will delete all your progress and cannot be undone!')) {
-                localStorage.removeItem('smokeLessState');
-                location.reload();
+                if (confirm('Really sure? This action is permanent!')) {
+                    localStorage.removeItem('smokeLessState');
+                    location.reload();
+                }
             }
         }
 
+        function showHelp() {
+            toggleMenu();
+            alert(`❓ Help & Info\n\n` +
+                  `🚬 Log each cigarette by tapping the green button\n\n` +
+                  `⏰ You'll get notifications 5 minutes before and at scheduled times\n\n` +
+                  `📅 Edit schedules to customize your reduction plan\n\n` +
+                  `💰 Track your spending and savings in real-time\n\n` +
+                  `📱 Install this app from your browser menu for the best experience`);
+        }
+
         // Initialize app
-        document.addEventListener('DOMContentLoaded', initializeApp);
         if (document.readyState === 'loading') {
             document.addEventListener('DOMContentLoaded', initializeApp);
         } else {
