@@ -702,6 +702,10 @@
             <span class="menu-item-icon">📅</span>
             <span>Edit Schedules</span>
         </div>
+        <div class="menu-item" onclick="openDayPicker()">
+            <span class="menu-item-icon">🗓️</span>
+            <span>Jump to Day/Phase</span>
+        </div>
         <div class="menu-item" onclick="showStats()">
             <span class="menu-item-icon">📊</span>
             <span>Statistics</span>
@@ -841,6 +845,59 @@
             <div class="modal-buttons">
                 <button class="btn-cancel" onclick="closeModal('scheduleModal')">Cancel</button>
                 <button class="btn-save" onclick="saveSchedules()">Save Schedules</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="dayPickerModal" class="modal">
+        <div class="modal-content">
+            <h2>🗓️ Jump to Day/Phase</h2>
+
+            <div class="setting-group">
+                <label>Select Method</label>
+                <div style="display: flex; gap: 10px; margin-bottom: 20px;">
+                    <button class="btn btn-primary" onclick="showDayInput()" style="flex: 1;">By Day Number</button>
+                    <button class="btn btn-primary" onclick="showPhaseInput()" style="flex: 1;">By Phase</button>
+                </div>
+            </div>
+
+            <div id="dayInputSection" style="display: none;">
+                <div class="setting-group">
+                    <label>📆 Choose Day (1-62)</label>
+                    <input type="number" id="dayNumberInput" min="1" max="62" value="1">
+                    <p style="color: var(--text-secondary); font-size: 0.85em; margin-top: 8px;">
+                        Current day: <strong id="currentDayDisplay">1</strong>
+                    </p>
+                </div>
+            </div>
+
+            <div id="phaseInputSection" style="display: none;">
+                <div class="setting-group">
+                    <label>📋 Choose Phase</label>
+                    <select id="phaseSelectInput"
+                        style="width: 100%; padding: 14px; border: 2px solid var(--card-border); border-radius: 12px; font-size: 1em; background: rgba(102, 126, 234, 0.05); color: var(--text-primary);">
+                    </select>
+                </div>
+                <div class="setting-group">
+                    <label>📅 Day within Phase</label>
+                    <input type="number" id="phasesDayInput" min="1" value="1">
+                    <p style="color: var(--text-secondary); font-size: 0.85em; margin-top: 8px;">
+                        Phase duration: <strong id="phaseDurationDisplay">2</strong> days
+                    </p>
+                </div>
+            </div>
+
+            <div class="setting-group"
+                style="background: rgba(245, 158, 11, 0.1); padding: 15px; border-radius: 12px; border: 1px solid var(--warning);">
+                <p style="color: var(--warning); font-size: 0.9em;">
+                    ⚠️ <strong>Warning:</strong> Jumping to a different day will adjust your start date and may affect
+                    your progress tracking. Today's count will be preserved.
+                </p>
+            </div>
+
+            <div class="modal-buttons">
+                <button class="btn-cancel" onclick="closeModal('dayPickerModal')">Cancel</button>
+                <button class="btn-save" onclick="jumpToSelectedDay()">Jump to Day</button>
             </div>
         </div>
     </div>
@@ -1637,6 +1694,113 @@
             renderPhaseSelector();
             renderScheduleEditor(currentEditingPhase);
             document.getElementById('scheduleModal').classList.add('active');
+        }
+
+        function openDayPicker() {
+            toggleMenu();
+            document.getElementById('currentDayDisplay').textContent = state.currentDay;
+            document.getElementById('dayNumberInput').value = state.currentDay;
+
+            // Populate phase selector
+            const phaseSelect = document.getElementById('phaseSelectInput');
+            phaseSelect.innerHTML = '';
+            state.phases.forEach((phase, index) => {
+                const option = document.createElement('option');
+                option.value = index;
+                option.textContent = `${phase.name} (${phase.perDay}/day for ${phase.days} days)`;
+                phaseSelect.appendChild(option);
+            });
+
+            // Set current phase
+            const currentPhaseIndex = getCurrentPhaseIndex();
+            phaseSelect.value = currentPhaseIndex;
+            updatePhaseDayInput();
+
+            phaseSelect.onchange = updatePhaseDayInput;
+
+            // Show day input by default
+            showDayInput();
+
+            document.getElementById('dayPickerModal').classList.add('active');
+        }
+
+        function showDayInput() {
+            document.getElementById('dayInputSection').style.display = 'block';
+            document.getElementById('phaseInputSection').style.display = 'none';
+        }
+
+        function showPhaseInput() {
+            document.getElementById('dayInputSection').style.display = 'none';
+            document.getElementById('phaseInputSection').style.display = 'block';
+        }
+
+        function getCurrentPhaseIndex() {
+            let totalDays = 0;
+            for (let i = 0; i < state.phases.length; i++) {
+                totalDays += state.phases[i].days;
+                if (state.currentDay <= totalDays) {
+                    return i;
+                }
+            }
+            return state.phases.length - 1;
+        }
+
+        function updatePhaseDayInput() {
+            const phaseIndex = parseInt(document.getElementById('phaseSelectInput').value);
+            const phase = state.phases[phaseIndex];
+            document.getElementById('phaseDurationDisplay').textContent = phase.days;
+            document.getElementById('phasesDayInput').max = phase.days;
+            document.getElementById('phasesDayInput').value = 1;
+        }
+
+        function jumpToSelectedDay() {
+            let targetDay;
+
+            if (document.getElementById('dayInputSection').style.display !== 'none') {
+                // By day number
+                targetDay = parseInt(document.getElementById('dayNumberInput').value);
+                if (targetDay < 1 || targetDay > 62) {
+                    alert('❌ Please enter a day between 1 and 62');
+                    return;
+                }
+            } else {
+                // By phase
+                const phaseIndex = parseInt(document.getElementById('phaseSelectInput').value);
+                const dayInPhase = parseInt(document.getElementById('phasesDayInput').value);
+                const phase = state.phases[phaseIndex];
+
+                if (dayInPhase < 1 || dayInPhase > phase.days) {
+                    alert(`❌ Please enter a day between 1 and ${phase.days} for this phase`);
+                    return;
+                }
+
+                // Calculate target day
+                let daysBeforePhase = 0;
+                for (let i = 0; i < phaseIndex; i++) {
+                    daysBeforePhase += state.phases[i].days;
+                }
+                targetDay = daysBeforePhase + dayInPhase;
+            }
+
+            if (confirm(`🗓️ Jump to Day ${targetDay}?\n\nThis will adjust your start date to make today Day ${targetDay}.\nYour current progress (${state.todaySmoked} cigarettes today) will be preserved.`)) {
+                // Calculate new start date
+                const today = new Date();
+                today.setHours(0, 0, 0, 0);
+                const newStartDate = new Date(today);
+                newStartDate.setDate(today.getDate() - (targetDay - 1));
+
+                state.startDate = newStartDate.toISOString();
+                state.currentDay = targetDay;
+
+                saveState();
+                calculateCurrentDay();
+                updateUI();
+
+                closeModal('dayPickerModal');
+
+                const phase = getCurrentPhase();
+                alert(`✅ Jumped to Day ${targetDay}!\n\n${phase.name}: ${phase.perDay} cigarettes/day\n\nYour progress tracking continues from here.`);
+            }
         }
 
         function closeModal(modalId) {
