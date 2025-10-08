@@ -1174,8 +1174,22 @@
                 state.lastResetDate = now.toISOString();
                 state.lastNotificationTime = null;
                 state.lastFiveMinWarning = null;
+
+                // Also recalculate current day
+                calculateCurrentDay();
+
                 saveState();
                 updateUI();
+
+                // Show notification that day has reset
+                if ('Notification' in window && Notification.permission === 'granted') {
+                    const phase = getCurrentPhase();
+                    sendAggressiveNotification(
+                        "🌅 New Day Started!",
+                        `Day ${state.currentDay}/62 - Goal: ${phase.perDay} cigarettes today`,
+                        true
+                    );
+                }
             }
         }
 
@@ -1225,13 +1239,23 @@
             const savedMoneyEl = document.getElementById('savedMoney');
             savedMoneyEl.textContent = `${Math.round(savedMoney)} DH`;
 
-            // Color code the savings
+            // Only color the text, not the box - use inline style for text color
+            const savedMoneyValue = savedMoneyEl;
             if (savedMoney < 0) {
-                savedMoneyEl.style.background = 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)';
+                savedMoneyValue.style.background = 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)';
+                savedMoneyValue.style.webkitBackgroundClip = 'text';
+                savedMoneyValue.style.webkitTextFillColor = 'transparent';
+                savedMoneyValue.style.backgroundClip = 'text';
             } else if (savedMoney > 0) {
-                savedMoneyEl.style.background = 'linear-gradient(135deg, #10b981 0%, #059669 100%)';
+                savedMoneyValue.style.background = 'linear-gradient(135deg, #10b981 0%, #059669 100%)';
+                savedMoneyValue.style.webkitBackgroundClip = 'text';
+                savedMoneyValue.style.webkitTextFillColor = 'transparent';
+                savedMoneyValue.style.backgroundClip = 'text';
             } else {
-                savedMoneyEl.style.background = '';
+                savedMoneyValue.style.background = 'linear-gradient(135deg, var(--primary) 0%, var(--accent) 100%)';
+                savedMoneyValue.style.webkitBackgroundClip = 'text';
+                savedMoneyValue.style.webkitTextFillColor = 'transparent';
+                savedMoneyValue.style.backgroundClip = 'text';
             }
 
             document.getElementById('totalSmoked').textContent = state.totalSmoked;
@@ -1255,11 +1279,15 @@
                 const scheduleTime = new Date();
                 scheduleTime.setHours(parseInt(hours), parseInt(minutes), 0, 0);
 
+                // Mark as completed based on today's smoked count (not time)
                 if (index < state.todaySmoked) {
                     item.classList.add('completed');
-                } else if (!nextFound && scheduleTime >= now) {
-                    item.classList.add('current');
-                    nextFound = true;
+                } else if (!nextFound) {
+                    // Only mark as current if it's upcoming and not yet smoked
+                    if (index === state.todaySmoked) {
+                        item.classList.add('current');
+                        nextFound = true;
+                    }
                 }
 
                 item.innerHTML = `
