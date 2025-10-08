@@ -998,7 +998,8 @@
             phases: JSON.parse(JSON.stringify(defaultPhases)),
             lastNotificationTime: null,
             lastFiveMinWarning: null,
-            lastResetDate: null
+            lastResetDate: null,
+            dailyHistory: {} // Store cigarettes per day: { "2025-01-15": 5, "2025-01-16": 8 }
         };
 
         // PWA Manifest
@@ -1118,9 +1119,11 @@
                 if (!state.cigarettesPerPack) state.cigarettesPerPack = 20;
                 if (!state.phases) state.phases = JSON.parse(JSON.stringify(defaultPhases));
                 if (!state.lastResetDate) state.lastResetDate = new Date().toISOString();
+                if (!state.dailyHistory) state.dailyHistory = {};
             } else {
                 state.startDate = new Date().toISOString();
                 state.lastResetDate = new Date().toISOString();
+                state.dailyHistory = {};
                 saveState();
             }
 
@@ -1130,10 +1133,13 @@
             // Request wake lock to keep app active
             requestWakeLock();
 
-            // Check if day has changed and reset daily counter
+            // CRITICAL: Check if day has changed and reset daily counter FIRST
             checkAndResetDailyCounter();
 
+            // Then calculate current day
             calculateCurrentDay();
+
+            // Update UI
             updateUI();
             checkNotificationPermission();
 
@@ -1151,16 +1157,23 @@
             // Update motivational quote every 30 seconds
             setInterval(updateMotivationalQuote, 30000);
 
-            // Check for day reset every minute
-            setInterval(checkAndResetDailyCounter, 60000);
+            // Check for day reset every 30 seconds (more frequent)
+            setInterval(checkAndResetDailyCounter, 30000);
 
             // Keep app alive - ping every 5 seconds
             setInterval(() => {
-                console.log('App active:', new Date().toLocaleTimeString());
+                const now = new Date();
+                console.log('App active:', now.toLocaleTimeString(), '| Today:', getTodayKey(), '| Smoked:', state.todaySmoked);
             }, 5000);
         }
 
+        function getTodayKey() {
+            const now = new Date();
+            return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+        }
+
         function checkAndResetDailyCounter() {
+            const todayKey = getTodayKey();
             const now = new Date();
             const lastReset = new Date(state.lastResetDate);
 
@@ -1169,7 +1182,20 @@
             const lastResetDate = new Date(lastReset.getFullYear(), lastReset.getMonth(), lastReset.getDate());
 
             if (nowDate > lastResetDate) {
-                console.log('🔄 New day detected - resetting daily counter');
+                console.log('🔄 NEW DAY DETECTED - Resetting everything');
+                console.log('Last reset:', lastResetDate.toLocaleDateString());
+                console.log('Current date:', nowDate.toLocaleDateString());
+
+                // Save yesterday's count to history before resetting
+                const yesterdayKey = state.lastResetDate ?
+                    new Date(state.lastResetDate).toISOString().slice(0, 10) : null;
+
+                if (yesterdayKey && state.todaySmoked > 0) {
+                    state.dailyHistory[yesterdayKey] = state.todaySmoked;
+                    console.log(`Saved ${state.todaySmoked} cigarettes for ${yesterdayKey}`);
+                }
+
+                // Reset today's counter
                 state.todaySmoked = 0;
                 state.lastResetDate = now.toISOString();
                 state.lastNotificationTime = null;
@@ -1180,6 +1206,8 @@
 
                 saveState();
                 updateUI();
+
+                console.log('✅ Day reset complete. New day:', state.currentDay, 'Today smoked:', state.todaySmoked);
 
                 // Show notification that day has reset
                 if ('Notification' in window && Notification.permission === 'granted') {
@@ -1462,6 +1490,10 @@
 
         function markSmoked() {
             const phase = getCurrentPhase();
+            const todayKey = getTodayKey();
+
+            // Ensure we're using today's count only
+            console.log('Marking smoked - Today:', todayKey, 'Current count:', state.todaySmoked);
 
             // Check if over limit - only warn, don't prevent
             if (state.todaySmoked >= phase.perDay) {
@@ -1482,15 +1514,21 @@
                 }
             }
 
+            // Increment today's count
             state.todaySmoked++;
             state.totalSmoked++;
             state.cigarettesInCurrentPack--;
+
+            // Update daily history for today
+            state.dailyHistory[todayKey] = state.todaySmoked;
 
             if (state.cigarettesInCurrentPack <= 0) {
                 state.packsUsed++;
                 state.totalCost += state.packPrice;
                 state.cigarettesInCurrentPack = state.cigarettesPerPack;
             }
+
+            console.log('After logging - Today smoked:', state.todaySmoked, 'Total:', state.totalSmoked);
 
             saveState();
             updateUI();
@@ -1706,14 +1744,27 @@
             const statusEmoji = savedMoney >= 0 ? '✅' : '⚠️';
             const statusText = savedMoney >= 0 ? 'On Track!' : 'Over Limit';
 
+            // Show recent history
+            const todayKey = getTodayKey();
+            const historyText = Object.keys(state.dailyHistory)
+                .sort()
+                .slice(-5)
+                .map(date => {
+                    const count = state.dailyHistory[date];
+                    const isToday = date === todayKey;
+                    return `${isToday ? '📍 ' : '  '}${date}: ${count} cigs`;
+                })
+                .join('\n');
+
             alert(`📊 Your Statistics\n\n` +
                 `${statusEmoji} Status: ${statusText}\n\n` +
                 `Day: ${state.currentDay}/62\n` +
                 `Phase: ${phase.name}\n` +
-                `Today: ${state.todaySmoked}/${phase.perDay}\n` +
+                `Today (${todayKey}): ${state.todaySmoked}/${phase.perDay}\n` +
                 `Total Smoked: ${state.totalSmoked}\n` +
                 `Planned (10/day): ${plannedSmoked}\n` +
                 `Difference: ${cigarettesAvoided >= 0 ? '+' : ''}${cigarettesAvoided}\n\n` +
+                `📅 Recent History:\n${historyText || 'No history yet'}\n\n` +
                 `Total Cost: ${state.totalCost} DH\n` +
                 `Money Saved: ${Math.round(savedMoney)} DH ${savedMoney < 0 ? '(NEGATIVE!)' : ''}\n` +
                 `Packs Used: ${state.packsUsed}`);
