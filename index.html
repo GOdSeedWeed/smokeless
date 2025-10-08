@@ -340,6 +340,7 @@
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
             background-clip: text;
+            transition: all 0.3s ease;
         }
 
         .stat-box .label {
@@ -996,7 +997,8 @@
             cigarettesPerPack: 20,
             phases: JSON.parse(JSON.stringify(defaultPhases)),
             lastNotificationTime: null,
-            lastFiveMinWarning: null
+            lastFiveMinWarning: null,
+            lastResetDate: null
         };
 
         // PWA Manifest
@@ -1115,8 +1117,10 @@
                 if (!state.packPrice) state.packPrice = 39;
                 if (!state.cigarettesPerPack) state.cigarettesPerPack = 20;
                 if (!state.phases) state.phases = JSON.parse(JSON.stringify(defaultPhases));
+                if (!state.lastResetDate) state.lastResetDate = new Date().toISOString();
             } else {
                 state.startDate = new Date().toISOString();
+                state.lastResetDate = new Date().toISOString();
                 saveState();
             }
 
@@ -1125,6 +1129,9 @@
 
             // Request wake lock to keep app active
             requestWakeLock();
+
+            // Check if day has changed and reset daily counter
+            checkAndResetDailyCounter();
 
             calculateCurrentDay();
             updateUI();
@@ -1144,10 +1151,32 @@
             // Update motivational quote every 30 seconds
             setInterval(updateMotivationalQuote, 30000);
 
+            // Check for day reset every minute
+            setInterval(checkAndResetDailyCounter, 60000);
+
             // Keep app alive - ping every 5 seconds
             setInterval(() => {
                 console.log('App active:', new Date().toLocaleTimeString());
             }, 5000);
+        }
+
+        function checkAndResetDailyCounter() {
+            const now = new Date();
+            const lastReset = new Date(state.lastResetDate);
+
+            // Check if it's a new day (compare dates only)
+            const nowDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+            const lastResetDate = new Date(lastReset.getFullYear(), lastReset.getMonth(), lastReset.getDate());
+
+            if (nowDate > lastResetDate) {
+                console.log('🔄 New day detected - resetting daily counter');
+                state.todaySmoked = 0;
+                state.lastResetDate = now.toISOString();
+                state.lastNotificationTime = null;
+                state.lastFiveMinWarning = null;
+                saveState();
+                updateUI();
+            }
         }
 
         function calculateCurrentDay() {
@@ -1187,8 +1216,24 @@
             document.getElementById('todayCount').textContent = `${state.todaySmoked}/${phase.perDay}`;
             document.getElementById('totalCost').textContent = `${state.totalCost} DH`;
 
-            const savedMoney = (state.currentDay * 10 * (state.packPrice / state.cigarettesPerPack)) - (state.totalSmoked * (state.packPrice / state.cigarettesPerPack));
-            document.getElementById('savedMoney').textContent = `${Math.round(savedMoney)} DH`;
+            // Calculate money saved - can go negative if over limit
+            const plannedSmoked = (state.currentDay - 1) * 10; // What you would have smoked at 10/day
+            const actualSmoked = state.totalSmoked;
+            const cigarettesAvoided = plannedSmoked - actualSmoked;
+            const savedMoney = cigarettesAvoided * (state.packPrice / state.cigarettesPerPack);
+
+            const savedMoneyEl = document.getElementById('savedMoney');
+            savedMoneyEl.textContent = `${Math.round(savedMoney)} DH`;
+
+            // Color code the savings
+            if (savedMoney < 0) {
+                savedMoneyEl.style.background = 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)';
+            } else if (savedMoney > 0) {
+                savedMoneyEl.style.background = 'linear-gradient(135deg, #10b981 0%, #059669 100%)';
+            } else {
+                savedMoneyEl.style.background = '';
+            }
+
             document.getElementById('totalSmoked').textContent = state.totalSmoked;
 
             updateSchedule(phase);
@@ -1390,17 +1435,23 @@
         function markSmoked() {
             const phase = getCurrentPhase();
 
+            // Check if over limit - only warn, don't prevent
             if (state.todaySmoked >= phase.perDay) {
                 const wittyMessages = [
-                    "Whoa there, champ! 🛑 You've hit today's limit. Your lungs will thank you!",
-                    "Hold up! ✋ That's your quota for today. Stay strong!",
-                    "Nice try! 😄 But you're done for today. Discipline = Freedom!",
-                    "Today's limit reached! 🎯 You're sticking to the plan like a boss!",
-                    "Stop right there! 🚦 You've smoked your scheduled amount. Proud of you!"
+                    "⚠️ Over your limit! But you're the boss - logging it anyway.\nMoney saved will go negative! 💸",
+                    "🚨 Beyond today's quota! Still tracking it.\nYour savings are taking a hit! 📉",
+                    "⚠️ Exceeding the plan! Logged.\nRemember: Extra cigarettes = less savings! 💰",
+                    "🔴 Over limit! But we're tracking everything.\nYour progress is affected! 📊",
+                    "⚠️ Above schedule! Logging it anyway.\nThis impacts your financial goals! 💵"
                 ];
                 const randomMsg = wittyMessages[Math.floor(Math.random() * wittyMessages.length)];
-                alert(randomMsg);
-                return;
+
+                // Show warning but continue
+                if (confirm(randomMsg + "\n\nContinue logging this cigarette?")) {
+                    // Continue to log
+                } else {
+                    return; // User cancelled
+                }
             }
 
             state.todaySmoked++;
@@ -1418,17 +1469,24 @@
 
             const btn = event.target;
             const originalText = btn.textContent;
-            const successMessages = [
-                '✓ Logged! You\'re on track! 🎯',
-                '✓ Logged! Discipline wins! 💪',
-                '✓ Perfect! Staying scheduled! ⭐',
-                '✓ Boom! Another one tracked! 🔥',
-                '✓ Logged! You\'re crushing it! 🏆'
-            ];
-            const randomSuccess = successMessages[Math.floor(Math.random() * successMessages.length)];
 
-            btn.textContent = randomSuccess;
-            btn.style.background = 'linear-gradient(135deg, #10b981 0%, #059669 100%)';
+            let successMessage;
+            if (state.todaySmoked <= phase.perDay) {
+                const successMessages = [
+                    '✓ Logged! You\'re on track! 🎯',
+                    '✓ Logged! Discipline wins! 💪',
+                    '✓ Perfect! Staying scheduled! ⭐',
+                    '✓ Boom! Another one tracked! 🔥',
+                    '✓ Logged! You\'re crushing it! 🏆'
+                ];
+                successMessage = successMessages[Math.floor(Math.random() * successMessages.length)];
+                btn.style.background = 'linear-gradient(135deg, #10b981 0%, #059669 100%)';
+            } else {
+                successMessage = '⚠️ Logged (Over Limit)';
+                btn.style.background = 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)';
+            }
+
+            btn.textContent = successMessage;
 
             setTimeout(() => {
                 btn.textContent = originalText;
@@ -1612,14 +1670,24 @@
         function showStats() {
             toggleMenu();
             const phase = getCurrentPhase();
-            const savedMoney = (state.currentDay * 10 * (state.packPrice / state.cigarettesPerPack)) - (state.totalSmoked * (state.packPrice / state.cigarettesPerPack));
+            const plannedSmoked = (state.currentDay - 1) * 10;
+            const actualSmoked = state.totalSmoked;
+            const cigarettesAvoided = plannedSmoked - actualSmoked;
+            const savedMoney = cigarettesAvoided * (state.packPrice / state.cigarettesPerPack);
+
+            const statusEmoji = savedMoney >= 0 ? '✅' : '⚠️';
+            const statusText = savedMoney >= 0 ? 'On Track!' : 'Over Limit';
+
             alert(`📊 Your Statistics\n\n` +
+                `${statusEmoji} Status: ${statusText}\n\n` +
                 `Day: ${state.currentDay}/62\n` +
                 `Phase: ${phase.name}\n` +
                 `Today: ${state.todaySmoked}/${phase.perDay}\n` +
                 `Total Smoked: ${state.totalSmoked}\n` +
+                `Planned (10/day): ${plannedSmoked}\n` +
+                `Difference: ${cigarettesAvoided >= 0 ? '+' : ''}${cigarettesAvoided}\n\n` +
                 `Total Cost: ${state.totalCost} DH\n` +
-                `Money Saved: ${Math.round(savedMoney)} DH\n` +
+                `Money Saved: ${Math.round(savedMoney)} DH ${savedMoney < 0 ? '(NEGATIVE!)' : ''}\n` +
                 `Packs Used: ${state.packsUsed}`);
         }
 
