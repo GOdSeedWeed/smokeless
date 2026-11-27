@@ -1224,9 +1224,12 @@
             }, 5000);
         }
 
+        function getLocalDateKey(date) {
+            return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+        }
+
         function getTodayKey() {
-            const now = new Date();
-            return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+            return getLocalDateKey(new Date());
         }
 
         function checkAndResetDailyCounter() {
@@ -1244,8 +1247,9 @@
                 console.log('Current date:', nowDate.toLocaleDateString());
 
                 // Save yesterday's count to history before resetting
-                const yesterdayKey = state.lastResetDate ?
-                    new Date(state.lastResetDate).toISOString().slice(0, 10) : null;
+                const lastReset = state.lastResetDate ? new Date(state.lastResetDate) : null;
+                const yesterdayKey = lastReset && !Number.isNaN(lastReset.getTime())
+                    ? getLocalDateKey(lastReset) : null;
 
                 if (yesterdayKey && state.todaySmoked > 0) {
                     state.dailyHistory[yesterdayKey] = state.todaySmoked;
@@ -1283,8 +1287,8 @@
             start.setHours(0, 0, 0, 0);
             const now = new Date();
             now.setHours(0, 0, 0, 0);
-            const diffTime = now - start;
-            const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+            const diffDays = Math.floor(Date.UTC(now.getFullYear(), now.getMonth(), now.getDate()) / 86400000) -
+                Math.floor(Date.UTC(start.getFullYear(), start.getMonth(), start.getDate()) / 86400000);
             state.currentDay = Math.max(1, Math.min(diffDays + 1, 62));
         }
 
